@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cipher Studio</title>
+    <title>Cipher Studio Pro</title>
     <style>
         :root { --primary: #6366f1; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 700px; background: var(--card); padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .container { width: 100%; max-width: 750px; background: var(--card); padding: 2rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { text-align: center; color: var(--primary); margin-bottom: 2rem; }
         .form-group { margin-bottom: 1.2rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
         select, textarea, input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
-        textarea { resize: vertical; min-height: 100px; }
+        textarea { resize: vertical; min-height: 100px; font-family: monospace; }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1.5rem; }
         button { padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: all 0.2s; }
         .btn-encrypt { background: var(--primary); color: white; }
         .btn-decrypt { background: #10b981; color: white; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-area { margin-top: 2rem; background: #f8fafc; padding: 1.2rem; border-left: 4px solid var(--primary); border-radius: 4px; }
-        #outputArea { margin: 0; word-break: break-all; font-family: 'Courier New', monospace; white-space: pre-wrap; font-weight: bold; min-height: 1.2em; }
+        #outputArea { margin: 0; word-break: break-all; font-family: 'Courier New', monospace; white-space: pre-wrap; font-weight: bold; color: #334155; }
     </style>
 </head>
 <body>
@@ -42,8 +42,8 @@
     </div>
 
     <div class="form-group">
-        <label>Сообщение (English only)</label>
-        <textarea id="inputArea" placeholder="Введите текст на английском..."></textarea>
+        <label>Сообщение (English Only)</label>
+        <textarea id="inputArea" placeholder="Enter text..."></textarea>
     </div>
 
     <div class="form-group" id="key-container">
@@ -71,29 +71,22 @@
         "Y": "-.--", "Z": "--..", " ": "/", "1": ".----", "2": "..---", "3": "...--", "4": "....-", "5": ".....",
         "6": "-....", "7": "--...", "8": "---..", "9": "----.", "0": "-----"
     };
+    const revMorse = Object.fromEntries(Object.entries(morseDict).map(([k,v]) => [v,k]));
 
     function handleUI() {
         const type = document.getElementById('cipherSelect').value;
         const keyContainer = document.getElementById('key-container');
-        const label = document.getElementById('keyLabel');
-        
         const noKeyCiphers = ['atbash', 'bacon', 'morse', 'polybius'];
         keyContainer.style.display = noKeyCiphers.includes(type) ? 'none' : 'block';
-
-        if(type === 'caesar' || type === 'gronsfeld') label.innerText = "Ключ (Цифра)";
-        else label.innerText = "Ключ (Слово)";
     }
 
     function process(isEncrypt) {
         const type = document.getElementById('cipherSelect').value;
-        const input = document.getElementById('inputArea').value.toUpperCase().replace(/[^A-Z0-9 ]/g, "");
+        let input = document.getElementById('inputArea').value.toUpperCase();
         const key = document.getElementById('cipherKey').value.toUpperCase().replace(/[^A-Z0-9]/g, "");
         let result = "";
 
-        if (!input) {
-            document.getElementById('outputArea').innerText = "Введите текст!";
-            return;
-        }
+        if (!input) return;
 
         switch(type) {
             case 'caesar': result = caesar(input, parseInt(key) || 0, isEncrypt); break;
@@ -103,99 +96,133 @@
             case 'morse': result = isEncrypt ? toMorse(input) : fromMorse(input); break;
             case 'gronsfeld': result = gronsfeld(input, key, isEncrypt); break;
             case 'polybius': result = polybius(input, isEncrypt); break;
-            case 'playfair': result = playfair(input, key, isEncrypt); break;
+            case 'playfair': result = playfairLogic(input, key, isEncrypt); break;
         }
         document.getElementById('outputArea').innerText = result;
     }
 
-    // --- ENGINES ---
-
-    function caesar(text, shift, enc) {
-        if (!enc) shift = (26 - (shift % 26)) % 26;
-        return text.split('').map(c => {
+    function caesar(t, s, e) {
+        if (!e) s = (26 - (s % 26)) % 26;
+        return t.split('').map(c => {
             let i = alphabet.indexOf(c);
-            return i === -1 ? c : alphabet[(i + shift) % 26];
+            return i === -1 ? c : alphabet[(i + s) % 26];
         }).join('');
     }
 
-    function atbash(text) {
-        return text.split('').map(c => {
+    function atbash(t) {
+        return t.split('').map(c => {
             let i = alphabet.indexOf(c);
             return i === -1 ? c : alphabet[25 - i];
         }).join('');
     }
 
-    function toMorse(text) {
-        return text.split('').map(c => morseDict[c] || '').join(' ');
+    function toMorse(t) {
+        return t.split('').map(c => morseDict[c] || '').filter(x => x).join(' ');
     }
 
-    function fromMorse(text) {
-        const rev = Object.fromEntries(Object.entries(morseDict).map(([k,v]) => [v,k]));
-        return text.trim().split(' ').map(c => rev[c] || '?').join('');
+    function fromMorse(t) {
+        return t.trim().split(/\s+/).map(c => revMorse[c] || '?').join('');
     }
 
-    function baconEnc(text) {
-        return text.replace(/ /g, "").split('').map(c => {
+    function baconEnc(t) {
+        return t.replace(/[^A-Z]/g, "").split('').map(c => {
             let i = alphabet.indexOf(c);
-            return i === -1 ? "" : i.toString(2).padStart(5, '0').replace(/0/g, 'A').replace(/1/g, 'B');
+            return i.toString(2).padStart(5, '0').replace(/0/g, 'A').replace(/1/g, 'B');
         }).join(' ');
     }
 
-    function baconDec(text) {
-        return text.split(' ').map(c => {
+    function baconDec(t) {
+        return t.trim().split(/\s+/).map(c => {
             if(c.length !== 5) return "";
             let bin = c.replace(/A/g, '0').replace(/B/g, '1');
-            let idx = parseInt(bin, 2);
-            return alphabet[idx] || "";
+            return alphabet[parseInt(bin, 2)] || "";
         }).join('');
     }
 
-    function vigenere(text, key, enc) {
-        if(!key) return text;
+    function vigenere(t, k, e) {
+        if(!k) return t;
         let res = "", ki = 0;
-        for(let c of text) {
+        for(let c of t) {
             let i = alphabet.indexOf(c);
             if(i===-1) { res+=c; continue; }
-            let shift = alphabet.indexOf(key[ki % key.length]);
-            let finalIdx = enc ? (i + shift) % 26 : (i - shift + 26) % 26;
-            res += alphabet[finalIdx];
+            let shift = alphabet.indexOf(k[ki % k.length]);
+            res += alphabet[(enc ? (i+shift) : (i-shift+26)) % 26];
             ki++;
         }
         return res;
     }
 
-    function gronsfeld(text, key, enc) {
-        if(!key) return text;
+    function gronsfeld(t, k, e) {
+        if(!k) return t;
         let res = "", ki = 0;
-        for(let c of text) {
+        for(let c of t) {
             let i = alphabet.indexOf(c);
             if(i===-1) { res+=c; continue; }
-            let shift = parseInt(key[ki % key.length]) || 0;
-            let finalIdx = enc ? (i + shift) % 26 : (i - shift + 26) % 26;
-            res += alphabet[finalIdx];
+            let shift = parseInt(k[ki % k.length]) || 0;
+            let f = e ? (i + shift) : (i - shift + 26);
+            res += alphabet[f % 26];
             ki++;
         }
         return res;
     }
 
-    function polybius(text, enc) {
-        const grid = "ABCDE" + "FGHIJ" + "KLMNO" + "PQRST" + "UVWXY" + "Z0123";
-        if(enc) {
-            return text.replace(/ /g, "").split('').map(c => {
+    function polybius(t, e) {
+        // Standard 5x5 for English (J is treated as I)
+        const grid = "ABCDE" + "FGHIK" + "LMNOP" + "QRSTU" + "VWXYZ";
+        if(e) {
+            return t.replace(/J/g, "I").replace(/[^A-Z]/g, "").split('').map(c => {
                 let i = grid.indexOf(c);
                 return i === -1 ? "" : (Math.floor(i/5)+1).toString() + (i%5+1).toString();
             }).join(' ');
         } else {
-            return text.split(' ').map(c => {
-                if(c.length!==2) return "";
-                let idx = (parseInt(c[0])-1)*5 + (parseInt(c[1])-1);
-                return grid[idx] || "";
+            let parts = t.trim().split(/\s+/);
+            return parts.map(p => {
+                if(p.length !== 2) return "";
+                let r = parseInt(p[0])-1, c = parseInt(p[1])-1;
+                return grid[r*5 + c] || "";
             }).join('');
         }
     }
 
-    function playfair(text, key, enc) {
-        return "Playfair simplified for English 5x5 Matrix. Requires specific pair logic.";
+    function playfairLogic(text, key, enc) {
+        let alphabetPF = "ABCDEFGHIKLMNOPQRSTUVWXYZ"; // No J
+        key = (key + alphabetPF).replace(/J/g, "I").replace(/[^A-Z]/g, "");
+        let finalKey = "";
+        for(let c of key) if(finalKey.indexOf(c) === -1) finalKey += c;
+        
+        let matrix = [];
+        for(let i=0; i<5; i++) matrix.push(finalKey.substring(i*5, i*5+5).split(''));
+
+        let cleanText = text.replace(/J/g, "I").replace(/[^A-Z]/g, "");
+        if(enc) {
+            let prepared = "";
+            for(let i=0; i<cleanText.length; i+=2) {
+                let a = cleanText[i], b = cleanText[i+1];
+                if(!b) { prepared += a + "X"; }
+                else if(a === b) { prepared += a + "X"; i--; }
+                else { prepared += a + b; }
+            }
+            cleanText = prepared;
+        }
+
+        let res = "";
+        for(let i=0; i<cleanText.length; i+=2) {
+            let a = cleanText[i], b = cleanText[i+1];
+            let r1, c1, r2, c2;
+            for(let r=0; r<5; r++) {
+                if(matrix[r].indexOf(a) !== -1) { r1 = r; c1 = matrix[r].indexOf(a); }
+                if(matrix[r].indexOf(b) !== -1) { r2 = r; c2 = matrix[r].indexOf(b); }
+            }
+
+            if(r1 === r2) {
+                res += matrix[r1][(c1 + (enc ? 1 : 4)) % 5] + matrix[r2][(c2 + (enc ? 1 : 4)) % 5];
+            } else if(c1 === c2) {
+                res += matrix[(r1 + (enc ? 1 : 4)) % 5][c1] + matrix[(r2 + (enc ? 1 : 4)) % 5][c2];
+            } else {
+                res += matrix[r1][c2] + matrix[r2][c1];
+            }
+        }
+        return res;
     }
 
     handleUI();
