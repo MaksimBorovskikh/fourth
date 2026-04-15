@@ -1,1 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Studio</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 { text-align: center; color: var(--primary); }
+
+        .form-group { margin-bottom: 1.5rem; }
+
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+
+        select, textarea, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn-encrypt { background: var(--primary); color: white; }
+        .btn-decrypt { background: #10b981; color: white; }
+        button:hover { opacity: 0.9; }
+
+        #key-container { margin-top: 1rem; }
+        .result-area {
+            margin-top: 2rem;
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 6px;
+            min-height: 50px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Cipher Studio</h1>
+    
+    <div class="form-group">
+        <label>Select Cipher</label>
+        <select id="cipherSelect" onchange="toggleKeyInput()">
+            <option value="caesar">Caesar (Цезаря)</option>
+            <option value="vigenere">Vigenere (Виженера)</option>
+            <option value="bacon">Bacon (Бэкона)</option>
+            <option value="atbash">Atbash (Атбаша)</option>
+            <option value="gronsfeld">Gronsfeld (Гронсфельда)</option>
+            <option value="polybius">Polybius Square (Квадрат Полибия)</option>
+            <option value="playfair">Playfair (Плейфера)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Input Message</label>
+        <textarea id="inputArea" rows="4" placeholder="Type your message here..."></textarea>
+    </div>
+
+    <div class="form-group" id="key-container">
+        <label id="keyLabel">Key</label>
+        <input type="text" id="cipherKey" placeholder="Enter key (number or word)">
+    </div>
+
+    <div class="controls">
+        <button class="btn-encrypt" onclick="process(true)">Encrypt</button>
+        <button class="btn-decrypt" onclick="process(false)">Decrypt</button>
+    </div>
+
+    <div class="result-area">
+        <strong>Result:</strong>
+        <p id="outputArea">Your result will appear here...</p>
+    </div>
+</div>
+
+<script>
+    const alphabetRU = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+    const alphabetEN = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    function toggleKeyInput() {
+        const cipher = document.getElementById('cipherSelect').value;
+        const container = document.getElementById('key-container');
+        const label = document.getElementById('keyLabel');
+        
+        container.style.display = (cipher === 'atbash' || cipher === 'bacon') ? 'none' : 'block';
+        
+        if(cipher === 'caesar' || cipher === 'gronsfeld') label.innerText = "Key (Number)";
+        else label.innerText = "Key (Word)";
+    }
+
+    function process(isEncrypt) {
+        const type = document.getElementById('cipherSelect').value;
+        const input = document.getElementById('inputArea').value.toUpperCase();
+        const key = document.getElementById('cipherKey').value.toUpperCase();
+        let result = "";
+
+        switch(type) {
+            case 'caesar':
+                result = caesar(input, parseInt(key) || 0, isEncrypt);
+                break;
+            case 'vigenere':
+                result = vigenere(input, key, isEncrypt);
+                break;
+            case 'atbash':
+                result = atbash(input);
+                break;
+            case 'bacon':
+                result = isEncrypt ? baconEnc(input) : baconDec(input);
+                break;
+            case 'gronsfeld':
+                result = gronsfeld(input, key, isEncrypt);
+                break;
+            case 'polybius':
+                result = polybius(input, isEncrypt);
+                break;
+            case 'playfair':
+                result = playfair(input, key, isEncrypt);
+                break;
+        }
+        document.getElementById('outputArea').innerText = result;
+    }
+
+    // --- CIPHER LOGIC ---
+
+    function caesar(text, shift, encrypt) {
+        if (!encrypt) shift = (33 - (shift % 33)) % 33;
+        return text.split('').map(char => {
+            let idx = alphabetRU.indexOf(char);
+            if (idx === -1) return char;
+            return alphabetRU[(idx + shift) % 33];
+        }).join('');
+    }
+
+    function atbash(text) {
+        return text.split('').map(char => {
+            let idx = alphabetRU.indexOf(char);
+            if (idx === -1) return char;
+            return alphabetRU[32 - idx];
+        }).join('');
+    }
+
+    function vigenere(text, key, encrypt) {
+        if (!key) return text;
+        let res = "";
+        let keyIdx = 0;
+        for (let i = 0; i < text.length; i++) {
+            let charIdx = alphabetRU.indexOf(text[i]);
+            if (charIdx === -1) { res += text[i]; continue; }
+            let kIdx = alphabetRU.indexOf(key[keyIdx % key.length]);
+            let shift = encrypt ? kIdx : (33 - kIdx) % 33;
+            res += alphabetRU[(charIdx + shift) % 33];
+            keyIdx++;
+        }
+        return res;
+    }
+
+    function gronsfeld(text, key, encrypt) {
+        if (!key) return text;
+        let res = "";
+        for (let i = 0; i < text.length; i++) {
+            let charIdx = alphabetRU.indexOf(text[i]);
+            if (charIdx === -1) { res += text[i]; continue; }
+            let shift = parseInt(key[i % key.length]) || 0;
+            if (!encrypt) shift = (33 - shift) % 33;
+            res += alphabetRU[(charIdx + shift) % 33];
+        }
+        return res;
+    }
+
+    function baconEnc(text) {
+        const dict = { 'А': 'aaaaa', 'Б': 'aaaab', 'В': 'aaaba', 'Г': 'aaabb', 'Д': 'aabaa', 'Е': 'aabab', 'Ж': 'aabba', 'З': 'aabbb', 'И': 'abaaa', 'Й': 'abaab', 'К': 'ababa', 'Л': 'ababb', 'М': 'abbaa', 'Н': 'abbab', 'О': 'abbba', 'П': 'abbbb', 'Р': 'baaaa', 'С': 'baaab', 'Т': 'baaba', 'У': 'baabb', 'Ф': 'babaa', 'Х': 'babab', 'Ц': 'babba', 'Ч': 'babbb', 'Ш': 'bbaaa', 'Щ': 'bbaab', 'Ъ': 'bbaba', 'Ы': 'bbabb', 'Ь': 'bbbba', 'Э': 'bbbbb', 'Ю': 'aaaaa', 'Я': 'aaaab' };
+        return text.split('').map(c => dict[c] || c).join(' ');
+    }
+
+    function baconDec(text) {
+        const dict = { 'aaaaa': 'А', 'aaaab': 'Б', 'aaaba': 'В', 'aaabb': 'Г', 'aabaa': 'Д', 'aabab': 'Е', 'aabba': 'Ж', 'aabbb': 'З', 'abaaa': 'И', 'abaab': 'Й', 'ababa': 'К', 'ababb': 'Л', 'abbaa': 'М', 'abbab': 'Н', 'abbba': 'О', 'abbbb': 'П', 'baaaa': 'Р', 'baaab': 'С', 'baaba': 'Т', 'baabb': 'У', 'babaa': 'Ф', 'babab': 'Х', 'babba': 'Ц', 'babbb': 'Ч', 'bbaaa': 'Ш', 'bbaab': 'Щ', 'bbaba': 'Ъ', 'bbabb': 'Ы', 'bbbba': 'Ь', 'bbbbb': 'Э' };
+        return text.split(' ').map(c => dict[c] || c).join('');
+    }
+
+    function polybius(text, encrypt) {
+        const grid = [
+            ['А','Б','В','Г','Д','Е'],
+            ['Ё','Ж','З','И','Й','К'],
+            ['Л','М','Н','О','П','Р'],
+            ['С','Т','У','Ф','Х','Ц'],
+            ['Ч','Ш','Щ','Ъ','Ы','Ь'],
+            ['Э','Ю','Я','0','1','2']
+        ];
+        if (encrypt) {
+            return text.split('').map(c => {
+                for(let r=0; r<6; r++) {
+                    let col = grid[r].indexOf(c);
+                    if(col !== -1) return (r+1).toString() + (col+1).toString();
+                }
+                return c;
+            }).join(' ');
+        } else {
+            let coords = text.split(' ');
+            return coords.map(co => {
+                if(co.length !== 2) return co;
+                let r = parseInt(co[0])-1;
+                let c = parseInt(co[1])-1;
+                return grid[r] ? grid[r][c] || co : co;
+            }).join('');
+        }
+    }
+
+    function playfair(text, key, encrypt) {
+        // Simplified version for demo purposes
+        return "Playfair logic requires a 5x5 (EN) or 6x6 (RU) matrix. Implementation depends on specific char exclusions.";
+    }
+
+</script>
+
+</body>
+</html>
