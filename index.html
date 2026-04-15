@@ -86,7 +86,7 @@
         const key = document.getElementById('cipherKey').value.toUpperCase().replace(/[^A-Z0-9]/g, "");
         let result = "";
 
-        if (!input) return;
+        if (!input.trim()) return;
 
         switch(type) {
             case 'caesar': result = caesar(input, parseInt(key) || 0, isEncrypt); break;
@@ -139,7 +139,7 @@
         }).join('');
     }
 
-    function vigenere(t, k, e) {
+    function vigenere(t, k, enc) {
         if(!k) return t;
         let res = "", ki = 0;
         for(let c of t) {
@@ -152,14 +152,14 @@
         return res;
     }
 
-    function gronsfeld(t, k, e) {
+    function gronsfeld(t, k, enc) {
         if(!k) return t;
         let res = "", ki = 0;
         for(let c of t) {
             let i = alphabet.indexOf(c);
             if(i===-1) { res+=c; continue; }
             let shift = parseInt(k[ki % k.length]) || 0;
-            let f = e ? (i + shift) : (i - shift + 26);
+            let f = enc ? (i + shift) : (i - shift + 26);
             res += alphabet[f % 26];
             ki++;
         }
@@ -167,28 +167,33 @@
     }
 
     function polybius(t, e) {
-        // Standard 5x5 for English (J is treated as I)
+        // Grid matching your image: J is merged with I
         const grid = "ABCDE" + "FGHIK" + "LMNOP" + "QRSTU" + "VWXYZ";
         if(e) {
             return t.replace(/J/g, "I").replace(/[^A-Z]/g, "").split('').map(c => {
                 let i = grid.indexOf(c);
-                return i === -1 ? "" : (Math.floor(i/5)+1).toString() + (i%5+1).toString();
+                if (i === -1) return "";
+                let row = Math.floor(i / 5) + 1;
+                let col = (i % 5) + 1;
+                return row.toString() + col.toString();
             }).join(' ');
         } else {
             let parts = t.trim().split(/\s+/);
             return parts.map(p => {
                 if(p.length !== 2) return "";
-                let r = parseInt(p[0])-1, c = parseInt(p[1])-1;
-                return grid[r*5 + c] || "";
+                let r = parseInt(p[0]) - 1;
+                let c = parseInt(p[1]) - 1;
+                return grid[r * 5 + c] || "?";
             }).join('');
         }
     }
 
     function playfairLogic(text, key, enc) {
         let alphabetPF = "ABCDEFGHIKLMNOPQRSTUVWXYZ"; // No J
-        key = (key + alphabetPF).replace(/J/g, "I").replace(/[^A-Z]/g, "");
+        if (!key) key = "KEYWORD";
+        let combined = (key + alphabetPF).replace(/J/g, "I").replace(/[^A-Z]/g, "");
         let finalKey = "";
-        for(let c of key) if(finalKey.indexOf(c) === -1) finalKey += c;
+        for(let c of combined) if(finalKey.indexOf(c) === -1) finalKey += c;
         
         let matrix = [];
         for(let i=0; i<5; i++) matrix.push(finalKey.substring(i*5, i*5+5).split(''));
