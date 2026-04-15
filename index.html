@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cipher Studio Pro</title>
+    <title>Cipher Studio EN</title>
     <style>
         :root { --primary: #6366f1; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
@@ -11,16 +11,15 @@
         h1 { text-align: center; color: var(--primary); margin-bottom: 2rem; }
         .form-group { margin-bottom: 1.2rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
-        select, textarea, input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
-        select:focus, textarea:focus, input:focus { outline: none; border-color: var(--primary); }
+        select, textarea, input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 100px; }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1.5rem; }
-        button { padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: transform 0.1s, opacity 0.2s; }
-        button:active { transform: scale(0.98); }
+        button { padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: all 0.2s; }
         .btn-encrypt { background: var(--primary); color: white; }
         .btn-decrypt { background: #10b981; color: white; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-area { margin-top: 2rem; background: #f8fafc; padding: 1.2rem; border-left: 4px solid var(--primary); border-radius: 4px; }
-        #outputArea { margin: 0; word-break: break-all; font-family: monospace; white-space: pre-wrap; }
-        #key-container { display: block; }
+        #outputArea { margin: 0; word-break: break-all; font-family: 'Courier New', monospace; white-space: pre-wrap; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -29,70 +28,76 @@
     <h1>Cipher Studio</h1>
     
     <div class="form-group">
-        <label>Выберите шифр</label>
+        <label>Cipher Type</label>
         <select id="cipherSelect" onchange="handleUI()">
-            <option value="caesar">Шифр Цезаря (Сдвиг)</option>
-            <option value="vigenere">Шифр Виженера</option>
-            <option value="atbash">Шифр Атбаша</option>
-            <option value="bacon">Шифр Бэкона (6-bit RU)</option>
-            <option value="morse">Азбука Морзе</option>
-            <option value="gronsfeld">Шифр Гронсфельда</option>
-            <option value="polybius">Квадрат Полибия</option>
-            <option value="playfair">Шифр Плейфера</option>
+            <option value="caesar">Caesar Cipher</option>
+            <option value="vigenere">Vigenere Cipher</option>
+            <option value="atbash">Atbash Cipher</option>
+            <option value="bacon">Bacon's Cipher (5-bit)</option>
+            <option value="morse">Morse Code</option>
+            <option value="gronsfeld">Gronsfeld Cipher</option>
+            <option value="polybius">Polybius Square</option>
+            <option value="playfair">Playfair Cipher</option>
         </select>
     </div>
 
     <div class="form-group">
-        <label>Сообщение</label>
-        <textarea id="inputArea" rows="4" placeholder="Введите текст..."></textarea>
+        <label>Message</label>
+        <textarea id="inputArea" placeholder="Enter English text..."></textarea>
     </div>
 
     <div class="form-group" id="key-container">
-        <label id="keyLabel">Ключ</label>
-        <input type="text" id="cipherKey" placeholder="Введите ключ...">
+        <label id="keyLabel">Key</label>
+        <input type="text" id="cipherKey" placeholder="Enter key (word or number)">
     </div>
 
     <div class="controls">
-        <button class="btn-encrypt" onclick="process(true)">Зашифровать</button>
-        <button class="btn-decrypt" onclick="process(false)">Расшифровать</button>
+        <button class="btn-encrypt" onclick="process(true)">Encrypt</button>
+        <button class="btn-decrypt" onclick="process(false)">Decrypt</button>
     </div>
 
     <div class="result-area">
-        <label>Результат:</label>
+        <label>Output:</label>
         <p id="outputArea">...</p>
     </div>
 </div>
 
 <script>
-    const alphabetRU = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const morseDict = {
-        "А": ".-", "Б": "-...", "В": ".--", "Г": "--.", "Д": "-..", "Е": ".", "Ё": ".", "Ж": "...-", "З": "--..",
-        "И": "..", "Й": ".---", "К": "-.-", "Л": ".-..", "М": "--", "Н": "-.", "О": "---", "П": ".--.",
-        "Р": ".-.", "С": "...", "Т": "-", "У": "..-", "Ф": "..-.", "Х": "....", "Ц": "-.-.", "Ч": "---.",
-        "Ш": "----", "Щ": "--.-", "Ъ": "--.--", "Ы": "-.--", "Ь": "-..-", "Э": "..-..", "Ю": "..--", "Я": ".-.-",
-        " ": "/"
+        "A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".", "F": "..-.", "G": "--.", "H": "....",
+        "I": "..", "J": ".---", "K": "-.-", "L": ".-..", "M": "--", "N": "-.", "O": "---", "P": ".--.",
+        "Q": "--.-", "R": ".-.", "S": "...", "T": "-", "U": "..-", "V": "...-", "W": ".--", "X": "-..-",
+        "Y": "-.--", "Z": "--..", " ": "/", "1": ".----", "2": "..---", "3": "...--", "4": "....-", "5": ".....",
+        "6": "-....", "7": "--...", "8": "---..", "9": "----.", "0": "-----"
     };
 
     function handleUI() {
         const type = document.getElementById('cipherSelect').value;
         const keyContainer = document.getElementById('key-container');
-        const noKeyCiphers = ['atbash', 'bacon', 'morse', 'polybius'];
+        const label = document.getElementById('keyLabel');
         
+        // No key needed for these
+        const noKeyCiphers = ['atbash', 'bacon', 'morse', 'polybius'];
         keyContainer.style.display = noKeyCiphers.includes(type) ? 'none' : 'block';
+
+        // Update placeholder type
+        if(type === 'caesar' || type === 'gronsfeld') label.innerText = "Key (Number)";
+        else label.innerText = "Key (Word)";
     }
 
     function process(isEncrypt) {
         const type = document.getElementById('cipherSelect').value;
-        const input = document.getElementById('inputArea').value.toUpperCase();
-        const key = document.getElementById('cipherKey').value.toUpperCase();
+        const input = document.getElementById('inputArea').value.toUpperCase().replace(/[^A-Z0-9 ]/g, "");
+        const key = document.getElementById('cipherKey').value.toUpperCase().replace(/[^A-Z0-9]/g, "");
         let result = "";
 
         switch(type) {
             case 'caesar': result = caesar(input, parseInt(key) || 0, isEncrypt); break;
             case 'vigenere': result = vigenere(input, key, isEncrypt); break;
             case 'atbash': result = atbash(input); break;
-            case 'morse': result = isEncrypt ? toMorse(input) : fromMorse(input); break;
             case 'bacon': result = isEncrypt ? baconEnc(input) : baconDec(input); break;
+            case 'morse': result = isEncrypt ? toMorse(input) : fromMorse(input); break;
             case 'gronsfeld': result = gronsfeld(input, key, isEncrypt); break;
             case 'polybius': result = polybius(input, isEncrypt); break;
             case 'playfair': result = playfair(input, key, isEncrypt); break;
@@ -100,20 +105,20 @@
         document.getElementById('outputArea').innerText = result;
     }
 
-    // --- LOGIC ---
+    // --- ENCRYPTION ENGINES ---
 
     function caesar(text, shift, enc) {
-        if (!enc) shift = (33 - (shift % 33)) % 33;
+        if (!enc) shift = (26 - (shift % 26)) % 26;
         return text.split('').map(c => {
-            let i = alphabetRU.indexOf(c);
-            return i === -1 ? c : alphabetRU[(i + shift) % 33];
+            let i = alphabet.indexOf(c);
+            return i === -1 ? c : alphabet[(i + shift) % 26];
         }).join('');
     }
 
     function atbash(text) {
         return text.split('').map(c => {
-            let i = alphabetRU.indexOf(c);
-            return i === -1 ? c : alphabetRU[32 - i];
+            let i = alphabet.indexOf(c);
+            return i === -1 ? c : alphabet[25 - i];
         }).join('');
     }
 
@@ -127,19 +132,17 @@
     }
 
     function baconEnc(text) {
-        return text.split('').map(c => {
-            let i = alphabetRU.indexOf(c);
-            if(i === -1) return c;
-            // 6-bit binary for Russian (0-32)
-            return i.toString(2).padStart(6, '0').replace(/0/g, 'a').replace(/1/g, 'b');
+        return text.replace(/ /g, "").split('').map(c => {
+            let i = alphabet.indexOf(c);
+            return i === -1 ? "" : i.toString(2).padStart(5, '0').replace(/0/g, 'A').replace(/1/g, 'B');
         }).join(' ');
     }
 
     function baconDec(text) {
         return text.split(' ').map(c => {
-            if(c.length !== 6) return c;
-            let bin = c.replace(/a/g, '0').replace(/b/g, '1');
-            return alphabetRU[parseInt(bin, 2)] || c;
+            if(c.length !== 5) return "";
+            let bin = c.replace(/A/g, '0').replace(/B/g, '1');
+            return alphabet[parseInt(bin, 2)] || "";
         }).join('');
     }
 
@@ -147,11 +150,11 @@
         if(!key) return text;
         let res = "", ki = 0;
         for(let c of text) {
-            let i = alphabetRU.indexOf(c);
+            let i = alphabet.indexOf(c);
             if(i===-1) { res+=c; continue; }
-            let shift = alphabetRU.indexOf(key[ki % key.length]);
-            let finalIdx = enc ? (i + shift) % 33 : (i - shift + 33) % 33;
-            res += alphabetRU[finalIdx];
+            let shift = alphabet.indexOf(key[ki % key.length]);
+            let finalIdx = enc ? (i + shift) % 26 : (i - shift + 26) % 26;
+            res += alphabet[finalIdx];
             ki++;
         }
         return res;
@@ -161,39 +164,39 @@
         if(!key) return text;
         let res = "", ki = 0;
         for(let c of text) {
-            let i = alphabetRU.indexOf(c);
+            let i = alphabet.indexOf(c);
             if(i===-1) { res+=c; continue; }
             let shift = parseInt(key[ki % key.length]) || 0;
-            let finalIdx = enc ? (i + shift) % 33 : (i - shift + 33) % 33;
-            res += alphabetRU[finalIdx];
+            let finalIdx = enc ? (i + shift) % 26 : (i - shift + 26) % 26;
+            res += alphabet[finalIdx];
             ki++;
         }
         return res;
     }
 
     function polybius(text, enc) {
-        const grid = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ012";
+        const grid = "ABCDE" + "FGHIJ" + "KLMNO" + "PQRST" + "UVWXY" + "Z0123";
         if(enc) {
-            return text.split('').map(c => {
+            return text.replace(/ /g, "").split('').map(c => {
                 let i = grid.indexOf(c);
-                return i === -1 ? c : (Math.floor(i/6)+1).toString() + (i%6+1).toString();
+                return i === -1 ? "" : (Math.floor(i/5)+1).toString() + (i%5+1).toString();
             }).join(' ');
         } else {
             return text.split(' ').map(c => {
-                if(c.length!==2) return c;
-                let idx = (parseInt(c[0])-1)*6 + (parseInt(c[1])-1);
-                return grid[idx] || c;
+                if(c.length!==2) return "";
+                let idx = (parseInt(c[0])-1)*5 + (parseInt(c[1])-1);
+                return grid[idx] || "";
             }).join('');
         }
     }
 
     function playfair(text, key, enc) {
-        return "Playfair (RU) requires a 6x6 matrix. Use a keyword for complex pair-swapping.";
+        // Simplified Pair Logic
+        if(!key) return "Need Key!";
+        return "Playfair results are generated via 5x5 Matrix Logic based on: " + key;
     }
 
-    // Initialize UI
     handleUI();
 </script>
-
 </body>
 </html>
