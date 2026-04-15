@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cipher Studio EN</title>
+    <title>Cipher Studio</title>
     <style>
         :root { --primary: #6366f1; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; }
@@ -19,7 +19,7 @@
         .btn-decrypt { background: #10b981; color: white; }
         button:hover { opacity: 0.9; transform: translateY(-1px); }
         .result-area { margin-top: 2rem; background: #f8fafc; padding: 1.2rem; border-left: 4px solid var(--primary); border-radius: 4px; }
-        #outputArea { margin: 0; word-break: break-all; font-family: 'Courier New', monospace; white-space: pre-wrap; font-weight: bold; }
+        #outputArea { margin: 0; word-break: break-all; font-family: 'Courier New', monospace; white-space: pre-wrap; font-weight: bold; min-height: 1.2em; }
     </style>
 </head>
 <body>
@@ -28,36 +28,36 @@
     <h1>Cipher Studio</h1>
     
     <div class="form-group">
-        <label>Cipher Type</label>
+        <label>Выберите шифр</label>
         <select id="cipherSelect" onchange="handleUI()">
-            <option value="caesar">Caesar Cipher</option>
-            <option value="vigenere">Vigenere Cipher</option>
-            <option value="atbash">Atbash Cipher</option>
-            <option value="bacon">Bacon's Cipher (5-bit)</option>
-            <option value="morse">Morse Code</option>
-            <option value="gronsfeld">Gronsfeld Cipher</option>
-            <option value="polybius">Polybius Square</option>
-            <option value="playfair">Playfair Cipher</option>
+            <option value="caesar">Шифр Цезаря</option>
+            <option value="vigenere">Шифр Виженера</option>
+            <option value="atbash">Шифр Атбаша</option>
+            <option value="bacon">Шифр Бэкона</option>
+            <option value="morse">Азбука Морзе</option>
+            <option value="gronsfeld">Шифр Гронсфельда</option>
+            <option value="polybius">Квадрат Полибия</option>
+            <option value="playfair">Шифр Плейфера</option>
         </select>
     </div>
 
     <div class="form-group">
-        <label>Message</label>
-        <textarea id="inputArea" placeholder="Enter English text..."></textarea>
+        <label>Сообщение (English only)</label>
+        <textarea id="inputArea" placeholder="Введите текст на английском..."></textarea>
     </div>
 
     <div class="form-group" id="key-container">
-        <label id="keyLabel">Key</label>
-        <input type="text" id="cipherKey" placeholder="Enter key (word or number)">
+        <label id="keyLabel">Ключ</label>
+        <input type="text" id="cipherKey" placeholder="Введите ключ...">
     </div>
 
     <div class="controls">
-        <button class="btn-encrypt" onclick="process(true)">Encrypt</button>
-        <button class="btn-decrypt" onclick="process(false)">Decrypt</button>
+        <button class="btn-encrypt" onclick="process(true)">Зашифровать</button>
+        <button class="btn-decrypt" onclick="process(false)">Расшифровать</button>
     </div>
 
     <div class="result-area">
-        <label>Output:</label>
+        <label>Результат:</label>
         <p id="outputArea">...</p>
     </div>
 </div>
@@ -77,13 +77,11 @@
         const keyContainer = document.getElementById('key-container');
         const label = document.getElementById('keyLabel');
         
-        // No key needed for these
         const noKeyCiphers = ['atbash', 'bacon', 'morse', 'polybius'];
         keyContainer.style.display = noKeyCiphers.includes(type) ? 'none' : 'block';
 
-        // Update placeholder type
-        if(type === 'caesar' || type === 'gronsfeld') label.innerText = "Key (Number)";
-        else label.innerText = "Key (Word)";
+        if(type === 'caesar' || type === 'gronsfeld') label.innerText = "Ключ (Цифра)";
+        else label.innerText = "Ключ (Слово)";
     }
 
     function process(isEncrypt) {
@@ -91,6 +89,11 @@
         const input = document.getElementById('inputArea').value.toUpperCase().replace(/[^A-Z0-9 ]/g, "");
         const key = document.getElementById('cipherKey').value.toUpperCase().replace(/[^A-Z0-9]/g, "");
         let result = "";
+
+        if (!input) {
+            document.getElementById('outputArea').innerText = "Введите текст!";
+            return;
+        }
 
         switch(type) {
             case 'caesar': result = caesar(input, parseInt(key) || 0, isEncrypt); break;
@@ -105,7 +108,7 @@
         document.getElementById('outputArea').innerText = result;
     }
 
-    // --- ENCRYPTION ENGINES ---
+    // --- ENGINES ---
 
     function caesar(text, shift, enc) {
         if (!enc) shift = (26 - (shift % 26)) % 26;
@@ -142,7 +145,8 @@
         return text.split(' ').map(c => {
             if(c.length !== 5) return "";
             let bin = c.replace(/A/g, '0').replace(/B/g, '1');
-            return alphabet[parseInt(bin, 2)] || "";
+            let idx = parseInt(bin, 2);
+            return alphabet[idx] || "";
         }).join('');
     }
 
@@ -191,9 +195,7 @@
     }
 
     function playfair(text, key, enc) {
-        // Simplified Pair Logic
-        if(!key) return "Need Key!";
-        return "Playfair results are generated via 5x5 Matrix Logic based on: " + key;
+        return "Playfair simplified for English 5x5 Matrix. Requires specific pair logic.";
     }
 
     handleUI();
